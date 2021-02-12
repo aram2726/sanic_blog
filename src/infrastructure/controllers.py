@@ -2,26 +2,37 @@ from abc import ABCMeta
 
 from sanic.request import Request
 
+from .config import SQLITE_FILE_PATH
+from .databases import SQLiteDBClient
+from .migrations import Migration
 from .responses import JsonResponse
 from .repositories import BlogPostRepository
+from src.core import usecases
 
 
-class BaseController(metaclass=ABCMeta):
+class AbstractBaseController(metaclass=ABCMeta):
     def __init__(self):
         self._blog_repo = None
+        self._db = None
 
     @property
-    def blog_repo(self):
+    def db(self) -> SQLiteDBClient:
+        if not self._db:
+            self._db = SQLiteDBClient(SQLITE_FILE_PATH)
+        return self._db
+
+    @property
+    def blog_repo(self) -> BlogPostRepository:
         if self._blog_repo is None:
-            self._blog_repo = BlogPostRepository()
+            self._blog_repo = BlogPostRepository(self.db)
         return self._blog_repo
 
 
-class BaseHttpController(BaseController):
-    def __init__(self, request: Request, response: JsonResponse):
+class BaseHttpController(AbstractBaseController):
+    def __init__(self, request: Request, output: JsonResponse):
         super().__init__()
         self._request = request
-        self._response = response
+        self._response = output
 
     @property
     def request(self):
@@ -33,24 +44,35 @@ class BaseHttpController(BaseController):
 
 
 class APIController(BaseHttpController):
-    def __init__(self, request: Request, response: HTTPResponse):
-        super(APIController, self).__init__(request, response)
+    def __init__(self, request: Request, response: JsonResponse):
+        super().__init__(request, response)
 
-    def list(self):
+    async def list(self):
         after = self.request.args.get("after")
         limit = self.request.args.get("limit")
-        data = self.blog_repo.get_all(after, limit)
-        self.response.data = data
+        usecase = usecases.ListBlogPostUsecase(self.response, self.blog_repo, after, limit)
+        await usecase.execute()
 
-    def get(self, uuid: int):
-        data = self.blog_repo.get_one(uuid)
-        self.response.data = data
+    async def get(self, uuid: int):
+        usecase = usecases.GetBlogPostUsecase(self.response, self.blog_repo, uuid)
+        await usecase.execute()
 
-    def create(self):
-        self.blog_repo.insert(self.request.json)
+    async def create(self):
+        usecase = usecases.CreateBlogPostUsecase(
+            self.response, self.blog_repo, self.request.json)
+        await usecase.execute()
 
-    def update(self, uuid: int):
-        pass
+    async def update(self, uuid: int):
+        usecase = usecases.UpdateBlogPostUsecase(self.response, self.blog_repo, uuid)
+        await usecase.execute()
 
-    def delete(self, uuid: int):
-        pass
+    async def delete(self, uuid: int):
+        usecase = usecases.DeleteBlogPostUsecase(self.response, self.blog_repo, uuid)
+        await usecase.execute()
+
+
+class CLIController(AbstractBaseController):
+
+    def migrate(self):
+        migration = Migration(self.db)
+        migration.create_table()

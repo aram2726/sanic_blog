@@ -1,4 +1,5 @@
 from abc import ABCMeta
+from datetime import datetime
 
 
 class BaseEntity(metaclass=ABCMeta):
@@ -21,6 +22,7 @@ class BlogPostEntity(BaseEntity):
         super().__init__(uuid)
         self._title = title
         self._context = context
+        self._updated_at = datetime.now()
 
     @property
     def title(self):
@@ -37,3 +39,7 @@ class BlogPostEntity(BaseEntity):
     @context.setter
     def context(self, context: str):
         self._context = context
+
+    @property
+    def updated_at(self):
+        return self._updated_at
