@@ -16,7 +16,8 @@ class Migration:
         query = f"""CREATE TABLE {self.BLOG_TABLE} (
             uuid  INTEGER PRIMARY KEY,
             title TEXT NOT NULL, 
-            context TEXT NOT NULL
+            context TEXT NOT NULL,
+            updated_at TEXT NOT NULL
         );"""
 
         self.db.cursor.execute(query)

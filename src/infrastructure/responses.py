@@ -1,5 +1,8 @@
+import json
+
 from sanic.response import HTTPResponse as BaseHttpResponse
 
+from .encoders import ResponseEncoder
 from src.core.responses import AbstractBaseResponse
 
 
@@ -18,7 +21,7 @@ class JsonResponse(AbstractBaseResponse):
 
     @data.setter
     def data(self, data: dict):
-        self._response.body = data
+        self._response.body = bytes(json.dumps(data, cls=ResponseEncoder), encoding="UTF-8")
 
     @property
     def headers(self):

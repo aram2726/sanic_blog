@@ -14,25 +14,25 @@ class ListBlogPostsView(HTTPMethodView):
 
 class CreateBlogPostView(HTTPMethodView):
 
-    def post(self, request):
+    async def post(self, request):
         controller = APIController(request, JsonResponse())
-        controller.create()
+        await controller.create()
         return controller.response.response
 
 
 class BlogPostView(HTTPMethodView):
 
-    def get(self, request, uuid):
+    async def get(self, request, uuid):
         controller = APIController(request, JsonResponse())
-        controller.get(uuid)
+        await controller.get(uuid)
         return controller.response.response
 
-    def patch(self, request, uuid):
+    async def patch(self, request, uuid):
         controller = APIController(request, JsonResponse())
-        controller.update(uuid)
+        await controller.update(uuid)
         return controller.response.response
 
-    def delete(self, request, uuid):
+    async def delete(self, request, uuid):
         controller = APIController(request, JsonResponse())
-        controller.delete(uuid)
+        await controller.delete(uuid)
         return controller.response.response

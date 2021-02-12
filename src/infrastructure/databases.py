@@ -74,14 +74,14 @@ class SQLiteDBClient(AbstractBaseDBClient):
     def cursor(self, cursor):
         self._cursor = cursor
 
-    def select_one(self, table: str, uuid: int):
+    async def select_one(self, table: str, uuid: int):
         query = f"SELECT * FROM {table} WHERE uuid = {uuid}"
 
         self.cursor.execute(query)
         data = self.cursor.fetcone()
         return data
 
-    def select_all(self, table: str, limit: Optional[int] = None, after: Optional[int] = None):
+    async def select_all(self, table: str, limit: Optional[int] = None, after: Optional[int] = None):
         query = f"SELECT * FROM {table}"
 
         if limit:
@@ -94,18 +94,16 @@ class SQLiteDBClient(AbstractBaseDBClient):
         data = self.cursor.fetchall()
         return data
 
-    def insert(self, table: str, data: dict):
-        data_keys = list(data.keys())
-        data_values = list(data.values())
-        keys = " ,".join(data_keys)
-        values = " ,".join(data_values)
-
-        query = f"INSERT INTO {table} ({keys}) ({values})"
-        self.cursor.execute(query)
+    async def insert(self, table: str, data: dict):
+        keys = list(data.keys())
+        query = "INSERT INTO {table} ({keys}) VALUES ({vals})".format(
+            table=table, keys=", ".join(keys), vals=", ".join([f":{k}" for k in keys])
+        )
+        self.cursor.execute(query, data)
         self.connection.commit()
 
-    def update(self, table: str, uuid: int, data: dict):
+    async def update(self, table: str, uuid: int, data: dict):
         pass
 
-    def delete(self, table: str, uuid: int):
+    async def delete(self, table: str, uuid: int):
         pass

@@ -8,6 +8,7 @@ from .migrations import Migration
 from .responses import JsonResponse
 from .repositories import BlogPostRepository
 from src.core import usecases
+from src.core.entities import BlogPostEntity
 
 
 class AbstractBaseController(metaclass=ABCMeta):
@@ -58,8 +59,9 @@ class APIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
+        post = BlogPostEntity(**self.request.json)
         usecase = usecases.CreateBlogPostUsecase(
-            self.response, self.blog_repo, self.request.json)
+            self.response, self.blog_repo, post)
         await usecase.execute()
 
     async def update(self, uuid: int):

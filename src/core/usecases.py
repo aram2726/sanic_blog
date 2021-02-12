@@ -2,6 +2,7 @@ from abc import ABCMeta
 from abc import abstractmethod
 from typing import Optional
 
+from .entities import BlogPostEntity
 from .repositories import BaseManageableRepository
 from .responses import AbstractBaseResponse
 
@@ -30,7 +31,7 @@ class ListBlogPostUsecase(AbstractBaseUsecase):
         self._limit = limit
 
     async def execute(self):
-        self._response = self._repo.get_all(self._after, self._limit)
+        self._response.data = await self._repo.get_all(self._after, self._limit)
 
 
 class GetBlogPostUsecase(AbstractBaseUsecase):
@@ -40,7 +41,7 @@ class GetBlogPostUsecase(AbstractBaseUsecase):
         self._uuid = uuid
 
     async def execute(self):
-        pass
+        self._response.data = await self._repo.get_one(self._uuid)
 
 
 class UpdateBlogPostUsecase(AbstractBaseUsecase):
@@ -55,12 +56,12 @@ class UpdateBlogPostUsecase(AbstractBaseUsecase):
 
 class CreateBlogPostUsecase(AbstractBaseUsecase):
 
-    def __init__(self, response: AbstractBaseResponse, repo: BaseManageableRepository, data: dict):
+    def __init__(self, response: AbstractBaseResponse, repo: BaseManageableRepository, data: BlogPostEntity):
         super().__init__(response, repo)
         self._data = data
 
     async def execute(self):
-        pass
+        await self._repo.insert(self._data.serialize())
 
 
 class DeleteBlogPostUsecase(AbstractBaseUsecase):

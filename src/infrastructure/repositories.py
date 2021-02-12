@@ -20,16 +20,16 @@ class BlogPostRepository(BaseManageableRepository):
     def db(self):
         return self._db
 
-    def get_one(self, uuid: int) -> BlogPostEntity:
-        data = self.db.select_one(self.table, uuid)
+    async def get_one(self, uuid: int) -> BlogPostEntity:
+        data = await self.db.select_one(self.table, uuid)
         return BlogPostEntity(**data)
 
-    def get_all(self, after=0, limit=DEFAULT_LIMIT) -> List[BlogPostEntity]:
-        data = self.db.select_all(self.table, limit, after)
+    async def get_all(self, after=0, limit=DEFAULT_LIMIT) -> List[BlogPostEntity]:
+        data = await self.db.select_all(self.table, limit, after)
         return [BlogPostEntity(**item) for item in data]
 
-    def insert(self, data: dict):
-        self.db.insert(self.table, data)
+    async def insert(self, data: dict):
+        await self.db.insert(self.table, data)
 
     def update(self, uuid: int, data: dict):
         pass
