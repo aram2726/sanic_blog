@@ -14,6 +14,11 @@ class AbstractBaseResponse(metaclass=ABCMeta):
     def data(self):
         raise NotImplementedError
 
+    @data.setter
+    @abstractmethod
+    def data(self, data):
+        raise NotImplementedError
+
     @property
     @abstractmethod
     def headers(self):

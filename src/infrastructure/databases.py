@@ -25,6 +25,11 @@ class AbstractBaseDBClient(metaclass=ABCMeta):
     def connection(self):
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def cursor(self):
+        raise NotImplementedError
+
     @abstractmethod
     def select_one(self, table: str, uuid: int):
         raise NotImplementedError
@@ -103,7 +108,17 @@ class SQLiteDBClient(AbstractBaseDBClient):
         self.connection.commit()
 
     async def update(self, table: str, uuid: int, data: dict):
-        pass
+        keys = list(data.keys())
+        to_update = [f"{k}=:{k}" for k in keys]
+        query = "UPDATE {table} SET {to_update} WHERE uuid={uuid}".format(
+            table=table, to_update=", ".join(to_update), uuid=uuid
+        )
+        self.cursor.execute(query, data)
+        self.connection.commit()
 
     async def delete(self, table: str, uuid: int):
-        pass
+        query = "DELETE FROM {table} WHERE uuid={uuid}".format(
+            table=table, uuid=uuid
+        )
+        self.cursor.execute(query)
+        self.connection.commit()

@@ -7,3 +7,7 @@ class APIException(AppException):
 
 class AppDBConnectionError(AppException):
     pass
+
+
+class InputValidationError(APIException):
+    pass
