@@ -2,6 +2,9 @@ from abc import ABCMeta
 
 from sanic.request import Request
 
+import permissions
+from .authentification import JWTManager
+from .config import SECRET_KEY
 from .config import SQLITE_FILE_PATH
 from .databases import SQLiteDBClient
 from .migrations import Migration
@@ -9,7 +12,10 @@ from .responses import JsonResponse
 from .repositories import BlogPostRepository
 from .repositories import UserRepository
 from .validators import UserValidator
+from .validators import LoginValidator
 from src.core import usecases
+from src.core.responses import CODE_DELETED
+from src.core.responses import CODE_CREATED
 from src.core.entities import BlogPostEntity
 from src.core.entities import UserEntity
 
@@ -23,7 +29,7 @@ class AbstractBaseController(metaclass=ABCMeta):
     @property
     def db(self) -> SQLiteDBClient:
         if not self._db:
-            self._db = SQLiteDBClient(SQLITE_FILE_PATH)
+            self._db = SQLiteDBClient(SQLITE_FILE_PATH)JWTManager
         return self._db
 
     @property
@@ -40,10 +46,16 @@ class AbstractBaseController(metaclass=ABCMeta):
 
 
 class BaseHttpController(AbstractBaseController):
+    data_validator_cls = None
+    permission_cls = None
+
     def __init__(self, request: Request, output: JsonResponse):
         super().__init__()
         self._request = request
         self._response = output
+
+        if self.permission_cls:
+            self.permission_cls(request)
 
     @property
     def request(self):
@@ -81,12 +93,27 @@ class BlogAPIController(BaseHttpController):
     async def delete(self, uuid: int):
         usecase = usecases.DeleteBlogPostUsecase(self.response, self.blog_repo, uuid)
         await usecase.execute()
+        self.response.status = CODE_DELETED
 
 
 class UserAPIController(BaseHttpController):
-    validator_cls = UserValidator
+    permission_class = None
+
+    async def login(self):
+        self.data_validator_cls = LoginValidator
+        data = self.request.json
+        validator = self.data_validator_cls(**data)
+        validator.validate()
+
+        users = await self.user_repo.filter(data)
+        if users:
+            token_manager = JWTManager(self.request, SECRET_KEY)
+            user = users[0]
+
+
 
     async def list(self):
+        self.permission_cls = permissions.IsSuperAdmin
         after = self.request.args.get("after")
         limit = self.request.args.get("limit")
         usecase = usecases.ListUserUsecase(self.response, self.user_repo, after, limit)
@@ -97,23 +124,36 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
-        username = self.request.json.get("username")
-        email = self.request.json.get("email")
-        password = self.request.json.get("password")
-        self.validator_cls(username, email, password).validate()
+        self.data_validator_cls = UserValidator
+        data = self.request.json
+        validator = self.data_validator_cls(**data)
+        validator.validate()
 
-        post = UserEntity(**self.request.json)
+        password = data.pop("password")
+        user = UserEntity(**data)
+        user.password = password
         usecase = usecases.CreateUserUsecase(
-            self.response, self.user_repo, post)
+            self.response, self.user_repo, user)
         await usecase.execute()
+        self.response.status = CODE_CREATED
 
     async def update(self, uuid: int):
-        usecase = usecases.UpdateUserUsecase(self.response, self.user_repo, uuid)
+        self.data_validator_cls = UserValidator
+        data = self.request.json
+        validator = self.data_validator_cls(**data)
+        validator.validate()
+
+        password = data.pop("password")
+        user = UserEntity(**data)
+        user.password = password
+
+        usecase = usecases.UpdateUserUsecase(self.response, self.user_repo, uuid, user)
         await usecase.execute()
 
     async def delete(self, uuid: int):
         usecase = usecases.DeleteUserUsecase(self.response, self.user_repo, uuid)
         await usecase.execute()
+        self.response.status = CODE_DELETED
 
 
 class CLIController(AbstractBaseController):
@@ -124,7 +164,7 @@ class CLIController(AbstractBaseController):
         migration.create_users_table()
 
     async def create_superuser(self, username: str, email: str, password: str):
-        user = UserEntity(username=username,
-                          email=email,
-                          password=password)
+        user = UserEntity(username=username, email=email)
+        user.password = password
+        user.is_superadmin = True
         await self.user_repo.insert(user.serialize())

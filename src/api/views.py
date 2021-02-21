@@ -71,3 +71,10 @@ class UserView(HTTPMethodView):
         controller = UserAPIController(request, JsonResponse())
         await controller.delete(uuid)
         return controller.response.response
+
+
+class LoginView(HTTPMethodView):
+    async def post(self, request):
+        controller = UserAPIController(request, JsonResponse())
+        await controller.login()
+        return controller.response.response

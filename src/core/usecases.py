@@ -104,12 +104,18 @@ class GetUserUsecase(AbstractBaseUsecase):
 
 class UpdateUserUsecase(AbstractBaseUsecase):
 
-    def __init__(self, response: AbstractBaseResponse, repo: BaseManageableRepository, uuid: int):
+    def __init__(
+            self,
+            response: AbstractBaseResponse,
+            repo: BaseManageableRepository,
+            uuid: int,
+            user: UserEntity):
         super().__init__(response, repo)
         self._uuid = uuid
+        self._user = user
 
     async def execute(self):
-        pass
+        await self._repo.update(self._uuid, self._user.serialize())
 
 
 class CreateUserUsecase(AbstractBaseUsecase):
@@ -129,4 +135,4 @@ class DeleteUserUsecase(AbstractBaseUsecase):
         self._uuid = uuid
 
     async def execute(self):
-        pass
+        await self._repo.delete(self._uuid)

@@ -11,3 +11,11 @@ class AppDBConnectionError(AppException):
 
 class InputValidationError(APIException):
     pass
+
+
+class PermissionDeniedError(APIException):
+    pass
+
+
+class UnauthorizedError(APIException):
+    pass

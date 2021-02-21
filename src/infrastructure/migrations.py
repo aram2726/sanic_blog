@@ -31,8 +31,8 @@ class Migration:
     def create_users_table(self):
         query = f"""CREATE TABLE IF NOT EXISTS {self.USERS_TABLE} (
             uuid  INTEGER PRIMARY KEY,
-            email TEXT NOT NULL, 
-            username TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL, 
+            username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             is_superadmin BOOL NOT NULL

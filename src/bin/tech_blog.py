@@ -22,12 +22,11 @@ def help_text():
     print(HELP_TEXT)
 
 
-async def create_superuser():
+async def create_superuser(controller: CLIController):
     email = str(input("\nEmail: "))
     username = str(input("\nUsername: "))
     password = str(getpass("\nPassword: "))
 
-    controller = CLIController()
     await controller.create_superuser(username, email, password)
 
 
@@ -43,11 +42,14 @@ def main():
     args = parser.parse_args()
     handler_name = args.Action
     controller = CLIController()
+
     if handler_name == COMMAND_MIGRATE:
         controller.migrate()
     elif handler_name == COMMAND_SUPERUSER:
         loop = asyncio.get_event_loop()
-        loop.run_until_complete(create_superuser())
+        loop.run_until_complete(
+            create_superuser(controller)
+        )
         loop.close()
     else:
         help_text()

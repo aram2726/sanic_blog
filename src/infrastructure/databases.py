@@ -39,6 +39,10 @@ class AbstractBaseDBClient(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def filter(self, table: str, data: dict):
+        raise NotImplementedError
+
+    @abstractmethod
     def insert(self, table: str, data: dict):
         raise NotImplementedError
 
@@ -99,6 +103,15 @@ class SQLiteDBClient(AbstractBaseDBClient):
         data = self.cursor.fetchall()
         return data
 
+    async def filter(self, table: str, data: dict):
+        keys = list(data.keys())
+        where_statement = [f"{k}=:{k}" for k in keys]
+        query = f"SELECT * FROM {table} WHERE {where_statement}"
+
+        self.cursor.execute(query, data)
+        data = self.cursor.fetchall()
+        return data
+
     async def insert(self, table: str, data: dict):
         keys = list(data.keys())
         query = "INSERT INTO {table} ({keys}) VALUES ({vals})".format(
@@ -120,5 +133,6 @@ class SQLiteDBClient(AbstractBaseDBClient):
         query = "DELETE FROM {table} WHERE uuid={uuid}".format(
             table=table, uuid=uuid
         )
+        print(query)
         self.cursor.execute(query)
         self.connection.commit()

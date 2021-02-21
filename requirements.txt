@@ -25,6 +25,7 @@ pep517==0.8.2
 pluggy==0.13.1
 progress==1.5
 py==1.10.0
+PyJWT==2.0.1
 pyparsing==2.4.6
 pytest==6.2.2
 python-dotenv==0.15.0

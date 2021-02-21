@@ -104,7 +104,7 @@ class UserEntity(BaseEntity):
 
     @password.setter
     def password(self, password: str):
-        hashed_password = hashlib.sha256(password)
+        hashed_password = hashlib.sha256(password.encode("UTF-8")).hexdigest()
         self._password = hashed_password
 
     @property
