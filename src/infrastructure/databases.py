@@ -105,10 +105,9 @@ class SQLiteDBClient(AbstractBaseDBClient):
 
     async def filter(self, table: str, data: dict):
         keys = list(data.keys())
-        where_statement = [f"{k}=:{k}" for k in keys]
+        where_statement = " AND ".join([f"{k} = '{data[k]}'" for k in keys])
         query = f"SELECT * FROM {table} WHERE {where_statement}"
-
-        self.cursor.execute(query, data)
+        self.cursor.execute(query)
         data = self.cursor.fetchall()
         return data
 
@@ -124,7 +123,7 @@ class SQLiteDBClient(AbstractBaseDBClient):
         keys = list(data.keys())
         to_update = [f"{k}=:{k}" for k in keys]
         query = "UPDATE {table} SET {to_update} WHERE uuid={uuid}".format(
-            table=table, to_update=", ".join(to_update), uuid=uuid
+            table=table, to_update=" ,".join(to_update), uuid=uuid
         )
         self.cursor.execute(query, data)
         self.connection.commit()

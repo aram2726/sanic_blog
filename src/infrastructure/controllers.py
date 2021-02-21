@@ -2,8 +2,9 @@ from abc import ABCMeta
 
 from sanic.request import Request
 
-import permissions
+from . import permissions
 from .authentification import JWTManager
+from .config import JWT_LIFETIME
 from .config import SECRET_KEY
 from .config import SQLITE_FILE_PATH
 from .databases import SQLiteDBClient
@@ -16,6 +17,7 @@ from .validators import LoginValidator
 from src.core import usecases
 from src.core.responses import CODE_DELETED
 from src.core.responses import CODE_CREATED
+from src.core.responses import CODE_UNAUTHORIZED
 from src.core.entities import BlogPostEntity
 from src.core.entities import UserEntity
 
@@ -29,7 +31,7 @@ class AbstractBaseController(metaclass=ABCMeta):
     @property
     def db(self) -> SQLiteDBClient:
         if not self._db:
-            self._db = SQLiteDBClient(SQLITE_FILE_PATH)JWTManager
+            self._db = SQLiteDBClient(SQLITE_FILE_PATH)
         return self._db
 
     @property
@@ -53,6 +55,7 @@ class BaseHttpController(AbstractBaseController):
         super().__init__()
         self._request = request
         self._response = output
+        self._token_manager = None
 
         if self.permission_cls:
             self.permission_cls(request)
@@ -64,6 +67,12 @@ class BaseHttpController(AbstractBaseController):
     @property
     def response(self):
         return self._response
+
+    @property
+    def token_manager(self):
+        if not self._token_manager:
+            self._token_manager = JWTManager(self.request, SECRET_KEY, int(JWT_LIFETIME), self.user_repo)
+        return self._token_manager
 
 
 class BlogAPIController(BaseHttpController):
@@ -104,13 +113,18 @@ class UserAPIController(BaseHttpController):
         data = self.request.json
         validator = self.data_validator_cls(**data)
         validator.validate()
+        password = data.pop("password")
+        user = UserEntity(**data)
+        user.password = password
+        users = await self.user_repo.filter(user.serialize())
+        if not users:
+            self.response.status = CODE_UNAUTHORIZED
+            self.response.data = {"message": "Unauthorized."}
+            return
 
-        users = await self.user_repo.filter(data)
-        if users:
-            token_manager = JWTManager(self.request, SECRET_KEY)
-            user = users[0]
-
-
+        user = users[0]
+        auth_token = self.token_manager.create(user)
+        self.response.data = {"token": auth_token}
 
     async def list(self):
         self.permission_cls = permissions.IsSuperAdmin

@@ -69,18 +69,18 @@ class UserEntity(BaseEntity):
 
     def __init__(
             self,
-            username: str,
-            email: str,
+            username: Optional[str] = None,
+            email: Optional[str] = None,
             password: Optional[str] = None,
             updated_at: Optional[str] = None,
-            is_superadmin: bool = False,
+            is_superadmin: Optional[bool] = None,
             uuid: Optional[int] = None):
         super().__init__(uuid)
         self._username = username
         self._email = email
         self._password = password
         self._is_superadmin = is_superadmin
-        self._updated_at = updated_at if updated_at else datetime.now()
+        self._updated_at = updated_at
 
     @property
     def username(self):
@@ -109,6 +109,8 @@ class UserEntity(BaseEntity):
 
     @property
     def updated_at(self):
+        if not self._updated_at:
+            self._updated_at = datetime.now()
         return self._updated_at
 
     @property

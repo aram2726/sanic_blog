@@ -11,3 +11,4 @@ dotenv.load_dotenv(os.path.join(BASE_DIR, ".env"))
 
 SQLITE_FILE_PATH = os.getenv("SQLITE_FILE_PATH")
 SECRET_KEY = os.getenv("SECRET_KEY")
+JWT_LIFETIME = os.getenv("JWT_LIFETIME")

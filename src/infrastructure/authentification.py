@@ -5,12 +5,18 @@ import jwt
 from sanic.request import Request
 
 from .exceptions import UnauthorizedError
+from .repositories import UserRepository
 from src.core.entities import UserEntity
 
 
 class JWTManager:
 
-    def __init__(self, request: Request, secret_key: str, token_lifetime: int):
+    def __init__(
+            self,
+            request: Request,
+            secret_key: str,
+            token_lifetime: int,
+            users_repo: UserRepository):
         self._request = request
         self._secret_key = secret_key
         self._token_lifetime = token_lifetime
@@ -30,4 +36,3 @@ class JWTManager:
             token = jwt.decode(token, key=self._secret_key, algorithms=[self._algorithm])
         except jwt.exceptions.PyJWTError:
             raise UnauthorizedError("Invalid token.")
-        # TODO: implement this.

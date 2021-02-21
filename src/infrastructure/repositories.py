@@ -60,8 +60,10 @@ class UserRepository(BaseManageableRepository):
         data = await self.db.select_all(self.table, limit, after)
         return [UserEntity(**item) for item in data]
 
-    async def filter(self, data: dict):
-        data = await self.db.filter(self.table, data)
+    async def filter(self, user: dict):
+        user = {k: user[k] for k in user if user.get(k)}
+        user.pop("updated_at")
+        data = await self.db.filter(self.table, user)
         return [UserEntity(**item) for item in data]
 
     async def insert(self, data: dict):
