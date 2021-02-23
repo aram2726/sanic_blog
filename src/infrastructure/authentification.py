@@ -21,6 +21,7 @@ class JWTManager:
         self._secret_key = secret_key
         self._token_lifetime = token_lifetime
         self._algorithm = "HS256"
+        self._users_repo = users_repo
 
     def create(self, user: UserEntity):
         payload = {
@@ -36,3 +37,11 @@ class JWTManager:
             token = jwt.decode(token, key=self._secret_key, algorithms=[self._algorithm])
         except jwt.exceptions.PyJWTError:
             raise UnauthorizedError("Invalid token.")
+
+        exp = token["exp"]
+        if exp >= datetime.now():
+            raise UnauthorizedError("Token is expired.")
+
+        uuid = token["user_id"]
+        if not self._users_repo.get_one(uuid):
+            raise UnauthorizedError("User doesnot exist.")

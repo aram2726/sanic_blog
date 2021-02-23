@@ -8,6 +8,7 @@ from .config import JWT_LIFETIME
 from .config import SECRET_KEY
 from .config import SQLITE_FILE_PATH
 from .databases import SQLiteDBClient
+from .exceptions import APIException
 from .migrations import Migration
 from .responses import JsonResponse
 from .repositories import BlogPostRepository
@@ -15,6 +16,7 @@ from .repositories import UserRepository
 from .validators import UserValidator
 from .validators import LoginValidator
 from src.core import usecases
+from src.core.responses import CODE_BAD_REQUEST
 from src.core.responses import CODE_DELETED
 from src.core.responses import CODE_CREATED
 from src.core.responses import CODE_UNAUTHORIZED
@@ -90,6 +92,7 @@ class BlogAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
+        self.permission_cls = permissions.ManageBlogPermission(self.request)
         post = BlogPostEntity(**self.request.json)
         usecase = usecases.CreateBlogPostUsecase(
             self.response, self.blog_repo, post)
@@ -109,14 +112,24 @@ class UserAPIController(BaseHttpController):
     permission_class = None
 
     async def login(self):
-        self.data_validator_cls = LoginValidator
         data = self.request.json
-        validator = self.data_validator_cls(**data)
-        validator.validate()
-        password = data.pop("password")
+
+        self.data_validator_cls = LoginValidator
+        try:
+            self.data_validator_cls(**data).validate()
+        except TypeError as exc:
+            print(exc)
+            self.response.status = CODE_BAD_REQUEST
+            return
+        except APIException as exc:
+            print(exc)
+            self.response.status = CODE_BAD_REQUEST
+            self.response.data = exc
+
         user = UserEntity(**data)
-        user.password = password
+        user.password = data.pop("password")
         users = await self.user_repo.filter(user.serialize())
+
         if not users:
             self.response.status = CODE_UNAUTHORIZED
             self.response.data = {"message": "Unauthorized."}
@@ -138,28 +151,26 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
-        self.data_validator_cls = UserValidator
         data = self.request.json
-        validator = self.data_validator_cls(**data)
-        validator.validate()
 
-        password = data.pop("password")
+        self.data_validator_cls = UserValidator
+        self.data_validator_cls(**data).validate()
+
         user = UserEntity(**data)
-        user.password = password
-        usecase = usecases.CreateUserUsecase(
-            self.response, self.user_repo, user)
+        user.password = data.pop("password")
+
+        usecase = usecases.CreateUserUsecase(self.response, self.user_repo, user)
         await usecase.execute()
         self.response.status = CODE_CREATED
 
     async def update(self, uuid: int):
-        self.data_validator_cls = UserValidator
         data = self.request.json
-        validator = self.data_validator_cls(**data)
-        validator.validate()
 
-        password = data.pop("password")
+        self.data_validator_cls = UserValidator
+        self.data_validator_cls(**data).validate()
+
         user = UserEntity(**data)
-        user.password = password
+        user.password = data.pop("password")
 
         usecase = usecases.UpdateUserUsecase(self.response, self.user_repo, uuid, user)
         await usecase.execute()
