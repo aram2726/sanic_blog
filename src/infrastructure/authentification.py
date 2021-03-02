@@ -1,5 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
+from typing import Optional
 
 import jwt
 from sanic.request import Request
@@ -23,7 +24,7 @@ class JWTManager:
         self._algorithm = "HS256"
         self._users_repo = users_repo
 
-    def create(self, user: UserEntity):
+    def create(self, user: UserEntity) -> str:
         payload = {
             "user_id": user.uuid,
             "email": user.email,
@@ -33,15 +34,23 @@ class JWTManager:
         return jwt.encode(payload, self._secret_key, self._algorithm)
 
     def validate(self, token: str):
-        try:
-            token = jwt.decode(token, key=self._secret_key, algorithms=[self._algorithm])
-        except jwt.exceptions.PyJWTError:
-            raise UnauthorizedError("Invalid token.")
+        decoded_token = self._decode_token(token)
 
-        exp = token["exp"]
+        exp = decoded_token["exp"]
         if exp >= datetime.now():
             raise UnauthorizedError("Token is expired.")
 
-        uuid = token["user_id"]
+        uuid = decoded_token["user_id"]
         if not self._users_repo.get_one(uuid):
-            raise UnauthorizedError("User doesnot exist.")
+            raise UnauthorizedError("User does not exist.")
+
+    async def get_user(self, token: str) -> Optional[UserEntity]:
+        decoded_token = self._decode_token(token)
+        return await self._users_repo.get_one(decoded_token["user_id"])
+
+    def _decode_token(self, token: str) -> dict:
+        try:
+            return jwt.decode(token, key=self._secret_key, algorithms=[self._algorithm])
+        except jwt.exceptions.PyJWTError:
+            raise UnauthorizedError("Invalid token.")
+

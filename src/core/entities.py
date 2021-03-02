@@ -23,48 +23,6 @@ class BaseEntity(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class BlogPostEntity(BaseEntity):
-
-    def __init__(
-            self,
-            title: str,
-            context: str,
-            updated_at: Optional[str] = None,
-            uuid: Optional[int] = None):
-        super().__init__(uuid)
-        self._title = title
-        self._context = context
-        self._updated_at = updated_at if updated_at else datetime.now()
-
-    @property
-    def title(self):
-        return self._title
-
-    @title.setter
-    def title(self, title: str):
-        self._title = title
-
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, context: str):
-        self._context = context
-
-    @property
-    def updated_at(self):
-        return self._updated_at
-
-    def serialize(self):
-        return {
-            "uuid": self.uuid,
-            "title": self.title,
-            "context": self.context,
-            "updated_at": str(self.updated_at)
-        }
-
-
 class UserEntity(BaseEntity):
 
     def __init__(
@@ -128,5 +86,58 @@ class UserEntity(BaseEntity):
             "email": self.email,
             "password": self.password,
             "is_superadmin": self.is_superadmin,
+            "updated_at": str(self.updated_at)
+        }
+
+
+class BlogPostEntity(BaseEntity):
+
+    def __init__(
+            self,
+            title: str,
+            context: str,
+            author: UserEntity,
+            updated_at: Optional[str] = None,
+            uuid: Optional[int] = None):
+        super().__init__(uuid)
+        self._title = title
+        self._context = context
+        self._author = author
+        self._updated_at = updated_at if updated_at else datetime.now()
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, title: str):
+        self._title = title
+
+    @property
+    def context(self):
+        return self._context
+
+    @context.setter
+    def context(self, context: str):
+        self._context = context
+
+    @property
+    def author(self) -> UserEntity:
+        return self._author
+
+    @property.setter
+    def author(self, author: UserEntity):
+        self._author = author
+
+    @property
+    def updated_at(self):
+        return self._updated_at
+
+    def serialize(self):
+        return {
+            "uuid": self.uuid,
+            "title": self.title,
+            "context": self.context,
+            "author": self.author.uuid,
             "updated_at": str(self.updated_at)
         }

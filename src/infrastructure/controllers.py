@@ -117,12 +117,10 @@ class UserAPIController(BaseHttpController):
         self.data_validator_cls = LoginValidator
         try:
             self.data_validator_cls(**data).validate()
-        except TypeError as exc:
-            print(exc)
+        except TypeError:
             self.response.status = CODE_BAD_REQUEST
             return
         except APIException as exc:
-            print(exc)
             self.response.status = CODE_BAD_REQUEST
             self.response.data = exc
 
