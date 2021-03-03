@@ -125,7 +125,7 @@ class BlogPostEntity(BaseEntity):
     def author(self) -> UserEntity:
         return self._author
 
-    @property.setter
+    @author.setter
     def author(self, author: UserEntity):
         self._author = author
 
