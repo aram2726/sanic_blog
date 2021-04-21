@@ -5,8 +5,10 @@ from typing import Optional
 from sanic.request import Request
 
 from .authentification import JWTManager
+from .exceptions import UnauthorizedError
 from src.core.entities import BlogPostEntity
 from src.core.entities import UserEntity
+from src.core.responses import CODE_UNAUTHORIZED
 
 
 class AbstractBasePermission(metaclass=ABCMeta):

@@ -8,6 +8,7 @@ from sanic.request import Request
 from .exceptions import UnauthorizedError
 from .repositories import UserRepository
 from src.core.entities import UserEntity
+from src.core.responses import CODE_UNAUTHORIZED
 
 
 class JWTManager:
@@ -52,5 +53,4 @@ class JWTManager:
         try:
             return jwt.decode(token, key=self._secret_key, algorithms=[self._algorithm])
         except jwt.exceptions.PyJWTError:
-            raise UnauthorizedError("Invalid token.")
-
+            raise UnauthorizedError({"message": "Invalid token.", "status": CODE_UNAUTHORIZED, "field": None})

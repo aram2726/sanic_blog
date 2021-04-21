@@ -1,8 +1,8 @@
 from abc import ABCMeta
+from typing import Optional
 
 from sanic.request import Request
 
-from . import permissions
 from .authentification import JWTManager
 from .config import JWT_LIFETIME
 from .config import SECRET_KEY
@@ -13,6 +13,7 @@ from .migrations import Migration
 from .responses import JsonResponse
 from .repositories import BlogPostRepository
 from .repositories import UserRepository
+from .permissions import AbstractBasePermission
 from .validators import UserValidator
 from .validators import LoginValidator
 from src.core import usecases
@@ -59,9 +60,6 @@ class BaseHttpController(AbstractBaseController):
         self._response = output
         self._token_manager = None
 
-        if self.permission_cls:
-            self.permission_cls(request)
-
     @property
     def request(self):
         return self._request
@@ -76,10 +74,21 @@ class BaseHttpController(AbstractBaseController):
             self._token_manager = JWTManager(self.request, SECRET_KEY, int(JWT_LIFETIME), self.user_repo)
         return self._token_manager
 
+    async def _check_permission(self):
+        if self.permission_cls:
+            await self.permission_cls.has_perm()
+
 
 class BlogAPIController(BaseHttpController):
-    def __init__(self, request: Request, response: JsonResponse):
+    def __init__(
+        self,
+        request: Request,
+        response: JsonResponse,
+        permission_class: Optional[AbstractBasePermission] = None
+    ):
         super().__init__(request, response)
+        if permission_class:
+            self.permission_cls = permission_class(self.request, self.token_manager)
 
     async def list(self):
         after = self.request.args.get("after")
@@ -92,24 +101,34 @@ class BlogAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
-        self.permission_cls = permissions.ManageBlogPermission(self.request)
+        await self._check_permission()
         post = BlogPostEntity(**self.request.json)
         usecase = usecases.CreateBlogPostUsecase(
             self.response, self.blog_repo, post)
         await usecase.execute()
 
     async def update(self, uuid: int):
+        await self._check_permission()
         usecase = usecases.UpdateBlogPostUsecase(self.response, self.blog_repo, uuid)
         await usecase.execute()
 
     async def delete(self, uuid: int):
+        await self._check_permission()
         usecase = usecases.DeleteBlogPostUsecase(self.response, self.blog_repo, uuid)
         await usecase.execute()
         self.response.status = CODE_DELETED
 
 
 class UserAPIController(BaseHttpController):
-    permission_class = None
+    def __init__(
+        self,
+        request: Request,
+        response: JsonResponse,
+        permission_class: Optional[AbstractBasePermission] = None
+    ):
+        super().__init__(request, response)
+        if permission_class:
+            self.permission_cls = permission_class(self.request, self.token_manager)
 
     async def login(self):
         data = self.request.json
@@ -123,6 +142,7 @@ class UserAPIController(BaseHttpController):
         except APIException as exc:
             self.response.status = CODE_BAD_REQUEST
             self.response.data = exc
+            return
 
         user = UserEntity(**data)
         user.password = data.pop("password")
@@ -138,7 +158,6 @@ class UserAPIController(BaseHttpController):
         self.response.data = {"token": auth_token}
 
     async def list(self):
-        self.permission_cls = permissions.IsSuperAdmin
         after = self.request.args.get("after")
         limit = self.request.args.get("limit")
         usecase = usecases.ListUserUsecase(self.response, self.user_repo, after, limit)
@@ -149,6 +168,8 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
+        await self._check_permission()
+
         data = self.request.json
 
         self.data_validator_cls = UserValidator
@@ -162,6 +183,8 @@ class UserAPIController(BaseHttpController):
         self.response.status = CODE_CREATED
 
     async def update(self, uuid: int):
+        await self._check_permission()
+
         data = self.request.json
 
         self.data_validator_cls = UserValidator
@@ -174,6 +197,8 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def delete(self, uuid: int):
+        await self._check_permission()
+
         usecase = usecases.DeleteUserUsecase(self.response, self.user_repo, uuid)
         await usecase.execute()
         self.response.status = CODE_DELETED
