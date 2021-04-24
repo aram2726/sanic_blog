@@ -76,7 +76,13 @@ class BaseHttpController(AbstractBaseController):
 
     async def _check_permission(self):
         if self.permission_cls:
-            await self.permission_cls.has_perm()
+            data = await self.permission_cls.has_perm()
+            return data
+
+    def process_exception(self, exc_data: dict) -> JsonResponse:
+        self.response.data = exc_data
+        self.response.status = exc_data["status"]
+
 
 
 class BlogAPIController(BaseHttpController):
@@ -101,19 +107,28 @@ class BlogAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict):
+            self.process_exception(condition)
+            return 
         post = BlogPostEntity(**self.request.json)
         usecase = usecases.CreateBlogPostUsecase(
             self.response, self.blog_repo, post)
         await usecase.execute()
 
     async def update(self, uuid: int):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict): 
+            self.process_exception(condition)
+            return
         usecase = usecases.UpdateBlogPostUsecase(self.response, self.blog_repo, uuid)
         await usecase.execute()
 
     async def delete(self, uuid: int):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict):
+            self.process_exception(condition)
+            return
         usecase = usecases.DeleteBlogPostUsecase(self.response, self.blog_repo, uuid)
         await usecase.execute()
         self.response.status = CODE_DELETED
@@ -168,7 +183,10 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def create(self):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict): 
+            self.process_exception(condition)
+            return
 
         data = self.request.json
 
@@ -183,7 +201,10 @@ class UserAPIController(BaseHttpController):
         self.response.status = CODE_CREATED
 
     async def update(self, uuid: int):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict):
+            self.process_exception(condition)
+            return
 
         data = self.request.json
 
@@ -197,7 +218,10 @@ class UserAPIController(BaseHttpController):
         await usecase.execute()
 
     async def delete(self, uuid: int):
-        await self._check_permission()
+        condition = await self._check_permission()
+        if isinstance(condition, dict):
+            self.process_exception(condition)
+            return
 
         usecase = usecases.DeleteUserUsecase(self.response, self.user_repo, uuid)
         await usecase.execute()

@@ -24,9 +24,12 @@ class AbstractBasePermission(metaclass=ABCMeta):
 
 class IsAuthenticated(AbstractBasePermission):
     async def has_perm(self) -> Optional[UserEntity]:
-        token = self.request.headers.get("Authorization")
-        user = await self.token_manager.get_user(token)
-        return user
+        try:
+            token = self.request.headers.get("Authorization")
+            user = await self.token_manager.get_user(token)
+            return user
+        except UnauthorizedError as exc:
+            return exc.args[0]
 
 
 class ViewUsersPermission(AbstractBasePermission):
@@ -36,20 +39,29 @@ class ViewUsersPermission(AbstractBasePermission):
 
 class ManageUserPermission(AbstractBasePermission):
     async def has_perm(self) -> bool:
-        token = self.request.headers.get("Authorization")
-        user = await self.token_manager.get_user(token)
-        return user.is_superadmin if user else False
+        try:
+            token = self.request.headers.get("Authorization")
+            user = await self.token_manager.get_user(token)
+            return user.is_superadmin if user else False
+        except UnauthorizedError as exc:
+            return exc.args[0]
 
 
 class IsSuperAdmin(AbstractBasePermission):
     async def has_perm(self) -> bool:
-        token = self.request.headers.get("Authorization")
-        user = await self.token_manager.get_user(token)
-        return user.is_superadmin if user else False
+        try:
+            token = self.request.headers.get("Authorization")
+            user = await self.token_manager.get_user(token)
+            return user.is_superadmin if user else False
+        except UnauthorizedError as exc:
+            return exc.args[0]
 
 
 class ManageBlogPermission(AbstractBasePermission):
     async def has_perm(self, blog: BlogPostEntity) -> bool:
-        token = self.request.headers.get("Authorization")
-        user = await self.token_manager.get_user(token)
-        return blog.author == user.uuid or user.is_superadmin
+        try:
+            token = self.request.headers.get("Authorization")
+            user = await self.token_manager.get_user(token)
+            return blog.author == user.uuid or user.is_superadmin
+        except UnauthorizedError as exc:
+            return exc.args[0]
