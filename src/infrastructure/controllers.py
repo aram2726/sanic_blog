@@ -79,10 +79,9 @@ class BaseHttpController(AbstractBaseController):
             data = await self.permission_cls.has_perm()
             return data
 
-    def process_exception(self, exc_data: dict) -> JsonResponse:
+    def process_exception(self, exc_data: dict):
         self.response.data = exc_data
         self.response.status = exc_data["status"]
-
 
 
 class BlogAPIController(BaseHttpController):

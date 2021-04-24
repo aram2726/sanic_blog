@@ -32,11 +32,6 @@ class IsAuthenticated(AbstractBasePermission):
             return exc.args[0]
 
 
-class ViewUsersPermission(AbstractBasePermission):
-    def has_perm(self):
-        pass
-
-
 class ManageUserPermission(AbstractBasePermission):
     async def has_perm(self) -> bool:
         try:
