@@ -12,6 +12,14 @@ class JsonResponse(AbstractBaseResponse):
         self._response.content_type = "application/json"
 
     @property
+    def status(self):
+        return self._response.status
+
+    @status.setter
+    def status(self, status: str):
+        self._response.status = status
+
+    @property
     def response(self):
         return self._response
 

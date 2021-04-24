@@ -7,3 +7,15 @@ class APIException(AppException):
 
 class AppDBConnectionError(AppException):
     pass
+
+
+class InputValidationError(APIException):
+    pass
+
+
+class PermissionDeniedError(APIException):
+    pass
+
+
+class UnauthorizedError(APIException):
+    pass

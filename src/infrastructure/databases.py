@@ -25,12 +25,21 @@ class AbstractBaseDBClient(metaclass=ABCMeta):
     def connection(self):
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def cursor(self):
+        raise NotImplementedError
+
     @abstractmethod
     def select_one(self, table: str, uuid: int):
         raise NotImplementedError
 
     @abstractmethod
     def select_all(self, table: str, limit: Optional[int] = None, after: Optional[int] = None):
+        raise NotImplementedError
+
+    @abstractmethod
+    def filter(self, table: str, data: dict):
         raise NotImplementedError
 
     @abstractmethod
@@ -94,6 +103,14 @@ class SQLiteDBClient(AbstractBaseDBClient):
         data = self.cursor.fetchall()
         return data
 
+    async def filter(self, table: str, data: dict):
+        keys = list(data.keys())
+        where_statement = " AND ".join([f"{k} = '{data[k]}'" for k in keys])
+        query = f"SELECT * FROM {table} WHERE {where_statement}"
+        self.cursor.execute(query)
+        data = self.cursor.fetchall()
+        return data
+
     async def insert(self, table: str, data: dict):
         keys = list(data.keys())
         query = "INSERT INTO {table} ({keys}) VALUES ({vals})".format(
@@ -103,7 +120,18 @@ class SQLiteDBClient(AbstractBaseDBClient):
         self.connection.commit()
 
     async def update(self, table: str, uuid: int, data: dict):
-        pass
+        keys = list(data.keys())
+        to_update = [f"{k}=:{k}" for k in keys]
+        query = "UPDATE {table} SET {to_update} WHERE uuid={uuid}".format(
+            table=table, to_update=" ,".join(to_update), uuid=uuid
+        )
+        self.cursor.execute(query, data)
+        self.connection.commit()
 
     async def delete(self, table: str, uuid: int):
-        pass
+        query = "DELETE FROM {table} WHERE uuid={uuid}".format(
+            table=table, uuid=uuid
+        )
+        print(query)
+        self.cursor.execute(query)
+        self.connection.commit()
